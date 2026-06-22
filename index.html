@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Cantina">
+  <meta name="theme-color" content="#C9A0B0">
+  <title>Cantina Vini</title>
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <style>
+    :root{--rosa:#C9A0B0;--rosa-l:#F2E8EC;--rosa-b:#E0D8DC;--dark:#3D3D3D;--mid:#A0A0A0;--light:#F5F5F5;--amber:#7A6020;--amber-b:#FDF6E3;--green:#4A7C59;--red:#B03060;--white:#fff}
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f5f6;color:var(--dark)}
+    #app{height:100%;display:flex;flex-direction:column;max-width:500px;margin:0 auto;background:white;position:relative}
+    /* TOPBAR */
+    .topbar{background:var(--rosa);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .topbar h1{font-size:18px;font-weight:600;color:white;letter-spacing:.3px}
+    .topbar-btns{display:flex;gap:14px}
+    .icon-btn{background:none;border:none;color:white;font-size:22px;cursor:pointer;padding:2px;display:flex;align-items:center}
+    /* STATUS */
+    .status{padding:5px 14px;font-size:12px;display:flex;align-items:center;gap:6px;flex-shrink:0;transition:background .3s}
+    .status.online{background:#EAF3DE;color:var(--green)}
+    .status.offline{background:var(--amber-b);color:var(--amber)}
+    .status.sync{background:#E8F0FE;color:#1a56db}
+    /* PANELS */
+    .panel{display:none;flex-direction:column;flex:1;overflow:hidden}
+    .panel.active{display:flex}
+    .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+    /* STATS */
+    .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 14px 0}
+    .stat{background:var(--light);border-radius:12px;padding:12px 14px}
+    .stat-label{font-size:11px;color:var(--mid);margin-bottom:4px}
+    .stat-val{font-size:26px;font-weight:700}
+    .stat-val.a{color:var(--amber)}
+    /* VOICE */
+    .voice-wrap{padding:12px 14px}
+    .voice-btn{background:var(--rosa-l);border:1.5px solid var(--rosa-b);border-radius:16px;padding:11px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;transition:all .15s;width:100%}
+    .voice-btn.on{background:var(--rosa);border-color:var(--rosa);animation:pulse 1s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.75}}
+    .mic{width:42px;height:42px;border-radius:50%;background:var(--rosa);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;transition:background .15s}
+    .voice-btn.on .mic{background:white}
+    .voice-texts{flex:1;text-align:left}
+    .voice-hint{font-size:12px;color:#A0849A}
+    .voice-btn.on .voice-hint{color:rgba(255,255,255,.9);font-weight:500}
+    .voice-res{font-size:13px;color:var(--dark);margin-top:3px;font-style:italic;min-height:18px}
+    .voice-btn.on .voice-res{color:rgba(255,255,255,.8)}
+    /* SEARCH */
+    .search-wrap{padding:0 14px 12px}
+    .search{width:100%;padding:10px 14px 10px 36px;border:1.5px solid var(--rosa-b);border-radius:10px;font-size:14px;background:var(--light) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center;outline:none;color:var(--dark)}
+    .search:focus{border-color:var(--rosa);background-color:white}
+    /* SECTION LABEL */
+    .sec{font-size:11px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.06em;padding:0 14px 8px}
+    /* CANTINA CARDS */
+    .cards{padding:0 14px 14px}
+    .card{background:white;border:1.5px solid var(--rosa-b);border-radius:14px;margin-bottom:10px;overflow:hidden}
+    .card-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer}
+    .card-hdr:active{background:var(--rosa-l)}
+    .card-name{font-size:14px;font-weight:600}
+    .card-sub{font-size:12px;color:var(--mid);margin-top:2px}
+    .card-right{display:flex;align-items:center;gap:8px}
+    .badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px}
+    .badge.ord{background:var(--amber-b);color:var(--amber)}
+    .badge.neu{background:var(--light);color:var(--mid)}
+    .chev{font-size:18px;color:var(--mid);transition:transform .2s;line-height:1}
+    .card.open .chev{transform:rotate(180deg)}
+    /* VINI */
+    .vini{display:none;border-top:1.5px solid var(--rosa-b)}
+    .card.open .vini{display:block}
+    .vrow{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--light)}
+    .vrow:last-child{border-bottom:none}
+    .vinfo{flex:1;min-width:0;margin-right:10px}
+    .vname{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .vprice{font-size:11px;color:var(--mid);margin-top:2px}
+    .qctrl{display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .qbtn{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--rosa-b);background:var(--light);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;line-height:1;color:var(--dark)}
+    .qbtn:active{background:var(--rosa-l)}
+    .qnum{font-size:15px;font-weight:700;min-width:26px;text-align:center}
+    .qnum.z{color:var(--red)}.qnum.l{color:var(--amber)}.qnum.ok{color:var(--green)}
+    /* ORDINI */
+    .ord-card{background:white;border:1.5px solid var(--rosa-b);border-radius:14px;margin:0 14px 10px;padding:14px;display:flex;justify-content:space-between;align-items:flex-start}
+    .ord-name{font-size:14px;font-weight:600}
+    .ord-meta{font-size:11px;color:var(--mid);margin-top:3px}
+    .ord-stato{font-size:11px;padding:3px 9px;border-radius:20px;display:inline-block;margin-top:6px}
+    .ord-stato.w{background:var(--amber-b);color:var(--amber)}
+    .ord-stato.d{background:#EAF3DE;color:var(--green)}
+    .conf-btn{font-size:11px;padding:4px 12px;border:1.5px solid var(--green);background:white;color:var(--green);border-radius:20px;cursor:pointer;margin-top:6px;display:block}
+    .ord-r{text-align:right;flex-shrink:0;margin-left:10px}
+    .ord-bott{font-size:15px;font-weight:700;color:var(--amber)}
+    .ord-imp{font-size:12px;color:var(--mid);margin-top:3px}
+    /* BOTTOM NAV */
+    .bnav{display:flex;border-top:1.5px solid var(--rosa-b);background:white;flex-shrink:0;padding-bottom:env(safe-area-inset-bottom)}
+    .nitem{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0 8px;cursor:pointer;color:var(--mid);font-size:10px;border:none;background:none}
+    .nitem.active{color:var(--rosa)}
+    .nicon{font-size:24px}
+    /* ACTION BTN */
+    .action-btn{width:calc(100% - 28px);margin:0 14px 12px;padding:13px;background:var(--rosa);color:white;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer}
+    .action-btn:active{opacity:.85}
+    /* EMPTY / TOAST */
+    .empty{text-align:center;padding:40px 20px;color:var(--mid);font-size:14px}
+    .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:10px 20px;border-radius:20px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;max-width:90vw;text-align:center}
+    .toast.show{opacity:1}
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <h1>🍷 Cantina</h1>
+    <div class="topbar-btns">
+      <button class="icon-btn" id="syncBtn" title="Sincronizza">⟳</button>
+    </div>
+  </div>
+  <div class="status online" id="status">● Online</div>
+
+  <!-- CANTINA PANEL -->
+  <div class="panel active" id="pCantina">
+    <div class="scroll">
+      <div class="stats">
+        <div class="stat"><div class="stat-label">Bottiglie totali</div><div class="stat-val" id="sTot">—</div></div>
+        <div class="stat"><div class="stat-label">In ordine</div><div class="stat-val a" id="sOrd">—</div></div>
+      </div>
+      <div class="voice-wrap">
+        <button class="voice-btn" id="voiceBtn">
+          <div class="mic">🎤</div>
+          <div class="voice-texts">
+            <div class="voice-hint" id="vHint">Tieni premuto • parla in italiano</div>
+            <div class="voice-res" id="vRes"></div>
+          </div>
+        </button>
+      </div>
+      <div class="search-wrap">
+        <input class="search" id="searchEl" type="search" placeholder="Cerca vino o cantina...">
+      </div>
+      <div class="sec">Cantine</div>
+      <div class="cards" id="cardList"><div class="empty">Caricamento...</div></div>
+    </div>
+  </div>
+
+  <!-- ORDINI PANEL -->
+  <div class="panel" id="pOrdini">
+    <div class="scroll">
+      <div style="padding:14px 14px 4px">
+        <button class="action-btn" id="newOrdBtn">+ Crea ordini automatici</button>
+      </div>
+      <div class="sec">Ordini registrati</div>
+      <div id="ordList"><div class="empty">Nessun ordine</div></div>
+    </div>
+  </div>
+
+  <nav class="bnav">
+    <button class="nitem active" data-p="pCantina"><span class="nicon">🍷</span><span>Cantina</span></button>
+    <button class="nitem" data-p="pOrdini"><span class="nicon">📋</span><span>Ordini</span></button>
+  </nav>
+</div>
+<div class="toast" id="toast"></div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
