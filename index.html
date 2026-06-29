@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Cantina">
+  <meta name="theme-color" content="#C9A0B0">
+  <title>Cantina Vini</title>
+  <style>
+    :root{--rosa:#C9A0B0;--rosa-l:#F2E8EC;--rosa-b:#E0D8DC;--dark:#3D3D3D;--mid:#A0A0A0;--light:#F5F5F5;--amber:#7A6020;--amber-b:#FDF6E3;--green:#4A7C59;--red:#B03060;--white:#fff}
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    html,body{height:100%;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f5f6;color:var(--dark)}
+    #app{height:100%;display:flex;flex-direction:column;max-width:500px;margin:0 auto;background:white}
+    .topbar{background:var(--rosa);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .topbar h1{font-size:18px;font-weight:600;color:white}
+    .topbar-btns{display:flex;gap:12px}
+    .icon-btn{background:none;border:none;color:white;font-size:20px;cursor:pointer;padding:4px;display:flex;align-items:center;border-radius:8px}
+    .icon-btn:active{background:rgba(255,255,255,.2)}
+    .status{padding:5px 14px;font-size:12px;display:flex;align-items:center;gap:6px;flex-shrink:0}
+    .status.online{background:#EAF3DE;color:var(--green)}
+    .status.offline{background:var(--amber-b);color:var(--amber)}
+    .status.sync{background:#E8F0FE;color:#1a56db}
+    .panel{display:none;flex-direction:column;flex:1;overflow:hidden}
+    .panel.active{display:flex}
+    .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:24px}
+    .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 14px 0}
+    .stat{background:var(--light);border-radius:12px;padding:12px 14px}
+    .stat-label{font-size:11px;color:var(--mid);margin-bottom:4px}
+    .stat-val{font-size:26px;font-weight:700}
+    .stat-val.a{color:var(--amber)}
+
+    /* ── VOICE REDESIGN ── */
+    .voice-wrap{padding:12px 14px}
+    .voice-area{border-radius:16px;overflow:hidden;border:2px solid var(--rosa-b);transition:border-color .2s}
+    .voice-area.listening{border-color:var(--rosa);animation:border-pulse 1.2s ease-in-out infinite}
+    .voice-area.processing{border-color:var(--amber)}
+    @keyframes border-pulse{0%,100%{border-color:var(--rosa)}50%{border-color:rgba(201,160,176,.3)}}
+    .voice-top{background:var(--rosa-l);padding:12px 16px;display:flex;align-items:center;gap:12px}
+    .voice-area.listening .voice-top{background:var(--rosa)}
+    .voice-area.processing .voice-top{background:var(--amber-b)}
+    .mic-circle{width:46px;height:46px;border-radius:50%;background:var(--rosa);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px;transition:all .2s;cursor:pointer;border:none;-webkit-tap-highlight-color:transparent}
+    .voice-area.listening .mic-circle{background:white;box-shadow:0 0 0 6px rgba(201,160,176,.3);animation:mic-pulse 1s ease-in-out infinite}
+    @keyframes mic-pulse{0%,100%{box-shadow:0 0 0 4px rgba(201,160,176,.4)}50%{box-shadow:0 0 0 10px rgba(201,160,176,.1)}}
+    .voice-area.processing .mic-circle{background:var(--amber);animation:none}
+    .voice-info{flex:1;min-width:0}
+    .voice-state{font-size:13px;font-weight:600;color:var(--dark);transition:color .2s}
+    .voice-area.listening .voice-state{color:white}
+    .voice-area.processing .voice-state{color:var(--amber)}
+    .voice-sub{font-size:11px;color:var(--mid);margin-top:2px}
+    .voice-area.listening .voice-sub{color:rgba(255,255,255,.8)}
+    .voice-heard{background:white;padding:10px 16px;font-size:13px;color:var(--dark);font-style:italic;min-height:0;max-height:0;overflow:hidden;transition:max-height .3s,padding .3s}
+    .voice-heard.show{max-height:60px;padding:10px 16px}
+    .voice-heard span{color:var(--rosa);font-weight:500}
+
+    .search-wrap{padding:8px 14px 12px}
+    .search{width:100%;padding:10px 14px 10px 36px;border:1.5px solid var(--rosa-b);border-radius:10px;font-size:14px;background:var(--light) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cpath d='m21 21-4.35-4.35'/%3E%3C/svg%3E") no-repeat 10px center;outline:none;color:var(--dark)}
+    .search:focus{border-color:var(--rosa);background-color:white}
+    .sec{font-size:11px;font-weight:600;color:var(--mid);text-transform:uppercase;letter-spacing:.06em;padding:0 14px 8px}
+    .cards{padding:0 14px}
+    .card{background:white;border:1.5px solid var(--rosa-b);border-radius:14px;margin-bottom:10px;overflow:hidden}
+    .card-hdr{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .card-hdr:active{background:var(--rosa-l)}
+    .card-name{font-size:14px;font-weight:600}
+    .card-sub{font-size:12px;color:var(--mid);margin-top:2px}
+    .card-right{display:flex;align-items:center;gap:8px}
+    .badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px}
+    .badge.ord{background:var(--amber-b);color:var(--amber)}
+    .badge.neu{background:var(--light);color:var(--mid)}
+    .chev{font-size:18px;color:var(--mid);transition:transform .2s;line-height:1}
+    .card.open .chev{transform:rotate(180deg)}
+    .vini{display:none;border-top:1.5px solid var(--rosa-b)}
+    .card.open .vini{display:block}
+    .vrow{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--light)}
+    .vrow:last-child{border-bottom:none}
+    .vinfo{flex:1;min-width:0;margin-right:10px}
+    .vname{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .vprice{font-size:11px;color:var(--mid);margin-top:2px}
+    .qctrl{display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .qbtn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--rosa-b);background:var(--light);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;color:var(--dark);-webkit-tap-highlight-color:transparent}
+    .qbtn:active{background:var(--rosa-l);transform:scale(.93)}
+    .qnum{font-size:15px;font-weight:700;min-width:26px;text-align:center}
+    .qnum.z{color:var(--red)}.qnum.l{color:var(--amber)}.qnum.ok{color:var(--green)}
+    .action-btn{width:calc(100% - 28px);margin:14px 14px 4px;padding:13px;background:var(--rosa);color:white;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;display:block}
+    .action-btn:active{opacity:.85}
+    .action-btn.sec-btn{background:white;color:var(--rosa);border:1.5px solid var(--rosa);margin-top:8px}
+    .ord-card{background:white;border:1.5px solid var(--rosa-b);border-radius:14px;margin:0 14px 10px;padding:14px}
+    .ord-top{display:flex;justify-content:space-between;align-items:flex-start}
+    .ord-name{font-size:14px;font-weight:600}
+    .ord-meta{font-size:11px;color:var(--mid);margin-top:3px}
+    .ord-stato{font-size:11px;padding:3px 9px;border-radius:20px;display:inline-block;margin-top:6px}
+    .ord-stato.w{background:var(--amber-b);color:var(--amber)}
+    .ord-stato.d{background:#EAF3DE;color:var(--green)}
+    .ord-r{text-align:right;flex-shrink:0;margin-left:10px}
+    .ord-bott{font-size:15px;font-weight:700;color:var(--amber)}
+    .ord-imp{font-size:12px;color:var(--mid);margin-top:3px}
+    .ord-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+    .ord-btn{font-size:11px;padding:5px 12px;border-radius:20px;cursor:pointer;border:1.5px solid}
+    .ord-btn.conf{border-color:var(--green);background:white;color:var(--green)}
+    .ord-btn.del{border-color:var(--red);background:white;color:var(--red)}
+    .g-filtro-wrap{padding:14px 14px 8px;display:flex;gap:8px}
+    .g-select{flex:1;padding:9px 12px;border:1.5px solid var(--rosa-b);border-radius:10px;font-size:13px;background:white;color:var(--dark);outline:none}
+    .g-section{margin:0 14px 16px}
+    .g-cantina-label{font-size:12px;font-weight:700;color:var(--rosa);text-transform:uppercase;letter-spacing:.05em;padding:8px 0 6px;border-bottom:1.5px solid var(--rosa-b);margin-bottom:6px}
+    .g-row{background:var(--light);border-radius:10px;padding:10px 12px;margin-bottom:6px}
+    .g-vname{font-size:13px;font-weight:600}
+    .g-meta{font-size:11px;color:var(--mid);margin-top:3px}
+    .g-btns{display:flex;gap:8px;margin-top:8px}
+    .g-btn{font-size:11px;padding:5px 12px;border-radius:20px;cursor:pointer;border:1.5px solid}
+    .g-btn.edit{border-color:var(--rosa);background:white;color:var(--rosa)}
+    .g-btn.del{border-color:var(--red);background:white;color:var(--red)}
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:flex-end;justify-content:center}
+    .modal-overlay.open{display:flex}
+    .modal{background:white;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto}
+    .modal h3{font-size:16px;font-weight:600;margin-bottom:16px}
+    .form-group{margin-bottom:12px}
+    .form-label{font-size:12px;font-weight:500;color:var(--mid);margin-bottom:4px;display:block}
+    .form-input{width:100%;padding:10px 12px;border:1.5px solid var(--rosa-b);border-radius:10px;font-size:14px;color:var(--dark);outline:none;background:white}
+    .form-input:focus{border-color:var(--rosa)}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .modal-btns{display:flex;gap:10px;margin-top:16px}
+    .btn-primary{flex:1;padding:12px;background:var(--rosa);color:white;border:none;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer}
+    .btn-secondary{flex:1;padding:12px;background:var(--light);color:var(--dark);border:none;border-radius:12px;font-size:14px;cursor:pointer}
+    .bnav{display:flex;border-top:1.5px solid var(--rosa-b);background:white;flex-shrink:0;padding-bottom:env(safe-area-inset-bottom)}
+    .nitem{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 0 8px;cursor:pointer;color:var(--mid);font-size:10px;border:none;background:none;-webkit-tap-highlight-color:transparent}
+    .nitem.active{color:var(--rosa)}
+    .nicon{font-size:22px}
+    .empty{text-align:center;padding:40px 20px;color:var(--mid);font-size:14px}
+    .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:10px 20px;border-radius:20px;font-size:13px;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw;text-align:center}
+    .toast.show{opacity:1}
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <h1>🍷 Cantina</h1>
+    <div class="topbar-btns">
+      <button class="icon-btn" id="syncBtn" title="Sincronizza">⟳</button>
+    </div>
+  </div>
+  <div class="status online" id="status">● Online</div>
+
+  <!-- CANTINA -->
+  <div class="panel active" id="pCantina">
+    <div class="scroll">
+      <div class="stats">
+        <div class="stat"><div class="stat-label">Bottiglie totali</div><div class="stat-val" id="sTot">—</div></div>
+        <div class="stat"><div class="stat-label">In ordine</div><div class="stat-val a" id="sOrd">—</div></div>
+      </div>
+
+      <!-- VOICE REDESIGN -->
+      <div class="voice-wrap">
+        <div class="voice-area" id="voiceArea">
+          <div class="voice-top">
+            <button class="mic-circle" id="micBtn" aria-label="Microfono">🎤</button>
+            <div class="voice-info">
+              <div class="voice-state" id="voiceState">Tocca il microfono</div>
+              <div class="voice-sub" id="voiceSub">Parla in italiano dopo aver toccato</div>
+            </div>
+          </div>
+          <div class="voice-heard" id="voiceHeard"></div>
+        </div>
+      </div>
+
+      <div class="search-wrap">
+        <input class="search" id="searchEl" type="search" placeholder="Cerca vino o cantina...">
+      </div>
+      <div class="sec">Cantine</div>
+      <div class="cards" id="cardList"><div class="empty">Caricamento...</div></div>
+    </div>
+  </div>
+
+  <!-- ORDINI -->
+  <div class="panel" id="pOrdini">
+    <div class="scroll">
+      <button class="action-btn" id="btnOrdAuto">⚡ Crea ordini automatici</button>
+      <button class="action-btn sec-btn" id="btnOrdManuale">✏️ Nuovo ordine manuale</button>
+      <div class="sec" style="margin-top:16px">Ordini registrati</div>
+      <div id="ordList"><div class="empty">Nessun ordine</div></div>
+    </div>
+  </div>
+
+  <!-- GESTIONE VINI -->
+  <div class="panel" id="pGestione">
+    <div class="scroll">
+      <button class="action-btn" id="btnNuovoVino">+ Aggiungi vino</button>
+      <div class="g-filtro-wrap">
+        <select class="g-select" id="gFiltro"><option value="">Tutte le cantine</option></select>
+      </div>
+      <div id="gList"><div class="empty">Caricamento...</div></div>
+    </div>
+  </div>
+
+  <nav class="bnav">
+    <button class="nitem active" data-p="pCantina"><span class="nicon">🍷</span><span>Cantina</span></button>
+    <button class="nitem" data-p="pOrdini"><span class="nicon">📋</span><span>Ordini</span></button>
+    <button class="nitem" data-p="pGestione"><span class="nicon">⚙️</span><span>Gestione</span></button>
+  </nav>
+</div>
+
+<!-- MODAL VINO -->
+<div class="modal-overlay" id="modalVino">
+  <div class="modal">
+    <h3 id="modalVinoTitolo">Nuovo vino</h3>
+    <form id="formVino">
+      <input type="hidden" id="mId">
+      <div class="form-group">
+        <label class="form-label">Cantina *</label>
+        <select class="form-input" id="mCantinaSelect"></select>
+      </div>
+      <div id="nuovaCantinaWrap" style="display:none" class="form-group">
+        <label class="form-label">Nome nuova cantina</label>
+        <input class="form-input" id="mNuovaCantina" type="text" placeholder="es. ANTINORI">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nome vino *</label>
+        <input class="form-input" id="mVino" type="text" placeholder="es. Sassella Riserva">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Quantità</label>
+          <input class="form-input" id="mQty" type="number" min="0" value="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">In ordine</label>
+          <input class="form-input" id="mOrd" type="number" min="0" value="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Prezzo acquisto €</label>
+          <input class="form-input" id="mPa" type="number" step="0.01" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Prezzo vendita €</label>
+          <input class="form-input" id="mPv" type="number" step="0.01" placeholder="0.00">
+        </div>
+      </div>
+      <div class="modal-btns">
+        <button type="button" class="btn-secondary" id="modalVinoClose">Annulla</button>
+        <button type="submit" class="btn-primary">Salva</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL ORDINE MANUALE -->
+<div class="modal-overlay" id="modalOrdine">
+  <div class="modal">
+    <h3>Nuovo ordine manuale</h3>
+    <form id="formOrdine">
+      <div class="form-group">
+        <label class="form-label">Cantina *</label>
+        <select class="form-input" id="oCantinaSelect"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Totale bottiglie *</label>
+          <input class="form-input" id="oTotBott" type="number" min="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Totale spesa €</label>
+          <input class="form-input" id="oTotSpesa" type="number" step="0.01" placeholder="0.00">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Data ordine</label>
+        <input class="form-input" id="oData" type="date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Note</label>
+        <input class="form-input" id="oNote" type="text" placeholder="Opzionale...">
+      </div>
+      <div class="modal-btns">
+        <button type="button" class="btn-secondary" id="modalOrdineClose">Annulla</button>
+        <button type="submit" class="btn-primary">Crea ordine</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
