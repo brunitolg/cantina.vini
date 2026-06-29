@@ -50,8 +50,7 @@ function render() {
       <div class="card-hdr">
         <div><div class="card-name">${c}</div><div class="card-sub">${vs.length} vini · ${totC} bott.</div></div>
         <div class="card-right">${badge}<span class="chev">⌄</span></div>
-      </div>
-      <div class="vini">${rows}</div></div>`
+      </div><div class="vini">${rows}</div></div>`
   }).join('')
   container.querySelectorAll('.card-hdr').forEach(h => h.addEventListener('click', () => h.closest('.card').classList.toggle('open')))
   container.querySelectorAll('.qbtn').forEach(btn => btn.addEventListener('click', async e => {
@@ -92,30 +91,28 @@ function renderOrdini() {
       </div>
     </div>`).join('')
   el.querySelectorAll('.ord-btn.conf').forEach(btn => btn.addEventListener('click', async () => {
-    if (!confirm('Confermare l\'arrivo? Le quantità verranno aggiornate in automatico.')) return
+    if (!confirm('Confermare arrivo? Le quantità si aggiornano automaticamente.')) return
     const n = await confermaOrdine(parseInt(btn.dataset.id), btn.dataset.c)
-    const { data } = await loadVini(); vini = data; render()
+    const { data } = await loadVini(); vini=data; render()
     ordini = await loadOrdini(); renderOrdini()
     toast(`✓ ${n} vini aggiornati!`)
   }))
   el.querySelectorAll('.ord-btn.del').forEach(btn => btn.addEventListener('click', async () => {
     if (!confirm('Eliminare questo ordine?')) return
     await eliminaOrdine(parseInt(btn.dataset.id))
-    ordini = ordini.filter(o => o.id !== parseInt(btn.dataset.id))
+    ordini = ordini.filter(o => o.id!==parseInt(btn.dataset.id))
     renderOrdini(); toast('🗑 Ordine eliminato')
   }))
 }
 
-// Ordine automatico
 document.getElementById('btnOrdAuto').addEventListener('click', async () => {
-  setStatus('sync', 'Creazione ordini...')
+  setStatus('sync','Creazione ordini...')
   const n = await creaOrdineAuto()
   ordini = await loadOrdini(); renderOrdini()
-  setStatus('online', 'Sincronizzato')
+  setStatus('online','Sincronizzato')
   toast(n > 0 ? `✓ ${n} ordine/i creato/i` : '⚠ Nessun vino ha quantità "in ordine"')
 })
 
-// Ordine manuale — apri modal
 document.getElementById('btnOrdManuale').addEventListener('click', () => {
   const sel = document.getElementById('oCantinaSelect')
   sel.innerHTML = getCantine().map(c => `<option value="${c}">${c}</option>`).join('')
@@ -131,14 +128,13 @@ document.getElementById('formOrdine').addEventListener('submit', async e => {
   const cantina = document.getElementById('oCantinaSelect').value
   const tot_bott = parseInt(document.getElementById('oTotBott').value)
   if (!cantina || !tot_bott) { toast('⚠ Cantina e totale bottiglie obbligatori'); return }
-  const dati = {
+  const nuovo = await creaOrdineManuele({
     cantina, totale_bottiglie: tot_bott,
     totale_spesa: parseFloat(document.getElementById('oTotSpesa').value) || 0,
     data_ordine: document.getElementById('oData').value || new Date().toISOString().split('T')[0],
-    nota: document.getElementById('oNote').value || null,
+    note: document.getElementById('oNote').value || null,
     stato: 'in_attesa'
-  }
-  const nuovo = await creaOrdineManuele(dati)
+  })
   ordini.unshift(nuovo); renderOrdini()
   document.getElementById('modalOrdine').classList.remove('open')
   toast('✓ Ordine creato!')
@@ -147,9 +143,8 @@ document.getElementById('formOrdine').addEventListener('submit', async e => {
 // ── GESTIONE VINI ─────────────────────────────────────────────────
 function renderGestione() {
   const filtro = document.getElementById('gFiltro').value
-  const lista = filtro ? vini.filter(v => v.cantina===filtro) : [...vini]
-  lista.sort((a,b) => a.cantina.localeCompare(b.cantina) || a.vino.localeCompare(b.vino))
-  // Aggiorna filtro select
+  const lista = (filtro ? vini.filter(v => v.cantina===filtro) : [...vini])
+    .sort((a,b) => a.cantina.localeCompare(b.cantina) || a.vino.localeCompare(b.vino))
   const sel = document.getElementById('gFiltro')
   const curr = sel.value
   sel.innerHTML = `<option value="">Tutte le cantine</option>` + getCantine().map(c => `<option value="${c}"${c===curr?' selected':''}>${c}</option>`).join('')
@@ -162,7 +157,7 @@ function renderGestione() {
       <div class="g-cantina-label">${c}</div>
       ${vs.map(v => `<div class="g-row">
         <div class="g-vname">${v.vino}</div>
-        <div class="g-meta">qty: <strong>${v.quantita}</strong>${v.prezzo_vendita ? ` · vend. €${Number(v.prezzo_vendita).toFixed(0)}` : ''}${v.in_ordine ? ` · ord. ${v.in_ordine}` : ''}</div>
+        <div class="g-meta">qty: <strong>${v.quantita}</strong>${v.prezzo_vendita?` · vend. €${Number(v.prezzo_vendita).toFixed(0)}`:''}${v.in_ordine?` · ord. ${v.in_ordine}`:''}</div>
         <div class="g-btns">
           <button class="g-btn edit" data-id="${v.id}">✏️ Modifica</button>
           <button class="g-btn del" data-id="${v.id}">🗑 Elimina</button>
@@ -199,7 +194,6 @@ function aggiornaSelectCantina(selected='') {
     `<option value="__nuova__">+ Nuova cantina...</option>`
 }
 
-// Nuovo vino
 document.getElementById('btnNuovoVino').addEventListener('click', () => {
   document.getElementById('modalVinoTitolo').textContent = 'Nuovo vino'
   document.getElementById('mId').value = ''
@@ -216,21 +210,17 @@ document.getElementById('mCantinaSelect').addEventListener('change', e => {
   document.getElementById('nuovaCantinaWrap').style.display = e.target.value==='__nuova__' ? 'block' : 'none'
 })
 document.getElementById('modalVinoClose').addEventListener('click', () => document.getElementById('modalVino').classList.remove('open'))
-
 document.getElementById('formVino').addEventListener('submit', async e => {
   e.preventDefault()
   const id = document.getElementById('mId').value
   const selVal = document.getElementById('mCantinaSelect').value
-  const cantina = selVal==='__nuova__'
-    ? document.getElementById('mNuovaCantina').value.trim().toUpperCase()
-    : selVal
+  const cantina = selVal==='__nuova__' ? document.getElementById('mNuovaCantina').value.trim().toUpperCase() : selVal
   const dati = {
-    cantina,
-    vino: document.getElementById('mVino').value.trim(),
-    quantita: parseInt(document.getElementById('mQty').value) || 0,
-    prezzo_acquisto: parseFloat(document.getElementById('mPa').value) || null,
-    prezzo_vendita: parseFloat(document.getElementById('mPv').value) || null,
-    in_ordine: parseInt(document.getElementById('mOrd').value) || 0
+    cantina, vino: document.getElementById('mVino').value.trim(),
+    quantita: parseInt(document.getElementById('mQty').value)||0,
+    prezzo_acquisto: parseFloat(document.getElementById('mPa').value)||null,
+    prezzo_vendita: parseFloat(document.getElementById('mPv').value)||null,
+    in_ordine: parseInt(document.getElementById('mOrd').value)||0
   }
   if (!dati.cantina || !dati.vino) { toast('⚠ Cantina e nome vino obbligatori'); return }
   try {
@@ -250,33 +240,64 @@ document.getElementById('formVino').addEventListener('submit', async e => {
 })
 document.getElementById('gFiltro').addEventListener('change', renderGestione)
 
-// ── VOCE ──────────────────────────────────────────────────────────
+// ── VOICE (tap-to-toggle, ottimizzato iOS Safari) ─────────────────
+const voiceArea = document.getElementById('voiceArea')
+const micBtn = document.getElementById('micBtn')
+const voiceState = document.getElementById('voiceState')
+const voiceSub = document.getElementById('voiceSub')
+const voiceHeard = document.getElementById('voiceHeard')
+
 const voice = new Voice(
+  // onResult
   async (r) => {
-    document.getElementById('vRes').textContent = `"${r.raw}"`
-    document.getElementById('voiceBtn').classList.remove('on')
-    document.getElementById('vHint').textContent = 'Tieni premuto • parla in italiano'
-    if (r.action==='cerca') { query=r.search; document.getElementById('searchEl').value=r.search; render(); return }
-    if (!r.action||!r.search) { toast('Non ho capito, riprova 🎤'); return }
+    // Mostra cosa ha capito
+    voiceHeard.innerHTML = `Ha capito: <span>"${r.raw}"</span>`
+    voiceHeard.classList.add('show')
+    setTimeout(() => voiceHeard.classList.remove('show'), 4000)
+
+    if (r.action === 'cerca') {
+      query = r.search; document.getElementById('searchEl').value = r.search; render()
+      toast(`🔍 Ricerca: "${r.search}"`)
+      return
+    }
+    if (!r.action || !r.search) {
+      toast('Non ho capito il comando — riprova')
+      return
+    }
+
     const q = r.search.toLowerCase()
     const match = vini.find(v => v.vino.toLowerCase().includes(q)) ||
       vini.find(v => q.split(' ').some(w => w.length>3 && v.vino.toLowerCase().includes(w))) ||
       vini.find(v => v.cantina.toLowerCase().includes(q))
-    if (!match) { toast(`❌ Non trovato: "${r.search}"`); return }
+
+    if (!match) { toast(`❌ Vino non trovato: "${r.search}"`); return }
+
     const delta = r.action==='sub' ? -r.qty : r.qty
-    toast(`${delta>0?'+':''}${delta} ${match.vino}`)
+    toast(`${delta>0?'➕':'➖'} ${Math.abs(delta)} × ${match.vino}`)
     await changeQty(match.id, delta)
   },
-  err => { toast(err); document.getElementById('voiceBtn').classList.remove('on') }
+  // onError
+  (err) => { toast('🎤 ' + err) },
+  // onStateChange
+  (state) => {
+    voiceArea.className = 'voice-area ' + state
+    if (state === 'listening') {
+      micBtn.textContent = '⏹'
+      voiceState.textContent = 'In ascolto...'
+      voiceSub.textContent = 'Tocca di nuovo per fermare'
+    } else if (state === 'processing') {
+      micBtn.textContent = '⏳'
+      voiceState.textContent = 'Elaborazione...'
+      voiceSub.textContent = ''
+    } else {
+      micBtn.textContent = '🎤'
+      voiceState.textContent = 'Tocca il microfono'
+      voiceSub.textContent = 'Parla in italiano dopo aver toccato'
+    }
+  }
 )
-let vTimer
-const vBtn = document.getElementById('voiceBtn')
-const startV = () => { vTimer = setTimeout(() => { vBtn.classList.add('on'); document.getElementById('vHint').textContent='Sto ascoltando...'; document.getElementById('vRes').textContent=''; voice.start() }, 150) }
-const stopV = () => { clearTimeout(vTimer); voice.stop() }
-vBtn.addEventListener('touchstart', e => { e.preventDefault(); startV() })
-vBtn.addEventListener('touchend', stopV)
-vBtn.addEventListener('mousedown', startV)
-vBtn.addEventListener('mouseup', stopV)
+
+micBtn.addEventListener('click', () => voice.toggle())
 
 // ── SEARCH ────────────────────────────────────────────────────────
 document.getElementById('searchEl').addEventListener('input', e => { query=e.target.value.toLowerCase().trim(); render() })
@@ -296,31 +317,31 @@ document.querySelectorAll('.nitem').forEach(btn => {
 // ── SYNC ─────────────────────────────────────────────────────────
 document.getElementById('syncBtn').addEventListener('click', async () => {
   if (!navigator.onLine) { toast('⚠ Sei offline'); return }
-  setStatus('sync', 'Sincronizzazione...')
+  setStatus('sync','Sincronizzazione...')
   const n = await syncOffline()
   const { data } = await loadVini(); vini=data; render()
   ordini = await loadOrdini()
-  setStatus('online', 'Sincronizzato')
+  setStatus('online','Sincronizzato')
   toast(n>0 ? `✓ ${n} modifica/he sincronizzata/e` : '✓ Tutto aggiornato')
 })
 
-// ── ONLINE/OFFLINE ────────────────────────────────────────────────
+// ── ONLINE/OFFLINE ─────────────────────────────────────────────────
 window.addEventListener('online', async () => {
   isOffline=false; setStatus('sync','Di nuovo online...')
   const n = await syncOffline()
   const { data } = await loadVini(); vini=data; render()
   setStatus('online','Sincronizzato')
-  toast(n>0 ? `✓ ${n} modifica/he sincronizzate` : '✓ Sei di nuovo online!')
+  toast(n>0 ? `✓ ${n} modifica/he sincronizzate` : '✓ Di nuovo online!')
 })
 window.addEventListener('offline', () => {
   isOffline=true; setStatus('offline','Offline — continua pure')
   toast('⚠ Offline — salvo tutto in locale')
 })
 
-// ── REALTIME ─────────────────────────────────────────────────────
+// ── REALTIME ──────────────────────────────────────────────────────
 realtimeSub(async () => { if (navigator.onLine) { const { data }=await loadVini(); vini=data; render() } })
 
-// ── INIT ─────────────────────────────────────────────────────────
+// ── INIT ──────────────────────────────────────────────────────────
 async function init() {
   try {
     const { data, isOffline: off } = await loadVini()
@@ -329,7 +350,7 @@ async function init() {
     render(); ordini=await loadOrdini()
   } catch(e) {
     setStatus('offline','Errore connessione')
-    document.getElementById('cardList').innerHTML='<div class="empty">❌ Errore caricamento dati</div>'
+    document.getElementById('cardList').innerHTML='<div class="empty">❌ Errore caricamento</div>'
   }
 }
 init()
