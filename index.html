@@ -127,6 +127,13 @@
     .nitem.active{color:var(--rosa)}
     .nicon{font-size:22px}
     .empty{text-align:center;padding:40px 20px;color:var(--mid);font-size:14px}
+
+    /* ── BARRA COMANDI TESTO ── */
+    .cmd-bar{display:flex;align-items:center;gap:8px;padding:10px 12px;border-top:1px solid var(--rosa-b);background:white}
+    .cmd-input{flex:1;padding:9px 12px;border:1.5px solid var(--rosa-b);border-radius:10px;font-size:14px;color:var(--dark);outline:none;background:var(--light)}
+    .cmd-input:focus{border-color:var(--rosa);background:white}
+    .cmd-send{width:38px;height:38px;border-radius:50%;background:var(--rosa);border:none;color:white;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .cmd-send:active{opacity:.8}
     .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--dark);color:white;padding:10px 20px;border-radius:20px;font-size:13px;z-index:200;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90vw;text-align:center}
     .toast.show{opacity:1}
   </style>
@@ -155,11 +162,18 @@
           <div class="voice-top">
             <button class="mic-circle" id="micBtn" aria-label="Microfono">🎤</button>
             <div class="voice-info">
-              <div class="voice-state" id="voiceState">Tocca il microfono</div>
-              <div class="voice-sub" id="voiceSub">Parla in italiano dopo aver toccato</div>
+              <div class="voice-state" id="voiceState">Tocca il microfono o scrivi</div>
+              <div class="voice-sub" id="voiceSub">Parla oppure digita il comando sotto</div>
             </div>
           </div>
           <div class="voice-heard" id="voiceHeard"></div>
+          <!-- BARRA COMANDI TESTO -->
+          <div class="cmd-bar">
+            <input class="cmd-input" id="cmdInput" type="text" 
+              placeholder='es. "togli 2 Sassella Rainoldi"' 
+              autocomplete="off" autocorrect="off" autocapitalize="off">
+            <button class="cmd-send" id="cmdSend">→</button>
+          </div>
         </div>
       </div>
 

@@ -302,6 +302,78 @@ micBtn.addEventListener('click', () => voice.toggle())
 // ── SEARCH ────────────────────────────────────────────────────────
 document.getElementById('searchEl').addEventListener('input', e => { query=e.target.value.toLowerCase().trim(); render() })
 
+// ── COMANDI TESTO ─────────────────────────────────────────────────
+// Usa la stessa logica del vocale ma da input testo
+function eseguiComandoTesto(testo) {
+  if (!testo.trim()) return
+  const t = testo.toLowerCase().trim()
+  
+  // Crea un risultato uguale a quello del vocale
+  const r = { raw: testo, action: null, qty: 1, search: '' }
+  
+  // Estrai quantità
+  const nm = t.match(/\b(\d+|un[oa]?|due|tre|quattro|cinque|sei|sette|otto|nove|dieci|dodici|venti|ventiquattro|trenta|quaranta|cinquanta|sessanta)\b/)
+  if (nm) {
+    const w = { uno:1,una:1,un:1,due:2,tre:3,quattro:4,cinque:5,sei:6,sette:7,otto:8,nove:9,dieci:10,dodici:12,venti:20,ventiquattro:24,trenta:30,quaranta:40,cinquanta:50,sessanta:60 }
+    r.qty = w[nm[1]] || parseInt(nm[1]) || 1
+  }
+  
+  let clean = t.replace(/\b(\d+|un[oa]?|due|tre|quattro|cinque|sei|sette|otto|nove|dieci|dodici|venti|ventiquattro|trenta|quaranta|cinquanta|sessanta)\b/, '').trim()
+  
+  if (/\b(togli|tolgo|preso|venduto|aperto|scarica|rimuovi|meno|-)\b/.test(t)) {
+    r.action = 'sub'
+    clean = clean.replace(/\b(togli|tolgo|preso|venduto|aperto|scarica|rimuovi|meno|bottigli[ae]?\s*di|bottigli[ae]?)\b/g, '').trim()
+  } else if (/\b(aggiungi|aggiungo|arrivat[oi]|arrivata|metti|carica|ricevut[oi]|\+)\b/.test(t)) {
+    r.action = 'add'
+    clean = clean.replace(/\b(aggiungi|aggiungo|arrivat[oi]|arrivata|metti|carica|ricevut[oi]|bottigli[ae]?\s*di|bottigli[ae]?)\b/g, '').trim()
+  } else if (/\b(quant[eo]|cerca|mostra|trova)\b/.test(t)) {
+    r.action = 'cerca'
+    clean = clean.replace(/\b(quant[eo]|cerca|mostra|trova|ho|rimast[eo]|bottigli[ae]?\s*di)\b/g, '').trim()
+  }
+  
+  r.search = clean.replace(/\s+/g, ' ').trim()
+  
+  // Mostra feedback
+  const voiceHeard = document.getElementById('voiceHeard')
+  voiceHeard.innerHTML = `Comando: <span>"${testo}"</span>`
+  voiceHeard.classList.add('show')
+  setTimeout(() => voiceHeard.classList.remove('show'), 3500)
+  
+  // Esegui azione (riusa la stessa logica del vocale)
+  if (r.action === 'cerca') {
+    query = r.search; document.getElementById('searchEl').value = r.search; render()
+    toast(`🔍 Ricerca: "${r.search}"`); return
+  }
+  if (!r.action || !r.search) { toast('❓ Comando non riconosciuto — es: "togli 2 Sassella"'); return }
+  
+  const q = r.search.toLowerCase()
+  const match = vini.find(v => v.vino.toLowerCase().includes(q)) ||
+    vini.find(v => q.split(' ').some(w => w.length>3 && v.vino.toLowerCase().includes(w))) ||
+    vini.find(v => v.cantina.toLowerCase().includes(q))
+  
+  if (!match) { toast(`❌ Vino non trovato: "${r.search}"`); return }
+  
+  const delta = r.action==='sub' ? -r.qty : r.qty
+  toast(`${delta>0?'➕':'➖'} ${Math.abs(delta)} × ${match.vino}`)
+  changeQty(match.id, delta)
+}
+
+const cmdInput = document.getElementById('cmdInput')
+const cmdSend = document.getElementById('cmdSend')
+
+function inviaComando() {
+  const val = cmdInput.value.trim()
+  if (!val) return
+  eseguiComandoTesto(val)
+  cmdInput.value = ''
+  cmdInput.blur()
+}
+
+cmdSend.addEventListener('click', inviaComando)
+cmdInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); inviaComando() } })
+
+
+
 // ── NAV ───────────────────────────────────────────────────────────
 document.querySelectorAll('.nitem').forEach(btn => {
   btn.addEventListener('click', () => {
