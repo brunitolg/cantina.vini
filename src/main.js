@@ -91,11 +91,26 @@ function renderOrdini() {
       </div>
     </div>`).join('')
   el.querySelectorAll('.ord-btn.conf').forEach(btn => btn.addEventListener('click', async () => {
-    if (!confirm('Confermare arrivo? Le quantità si aggiornano automaticamente.')) return
+    if (!confirm('Confermare arrivo? Le quantità si aggiornano e l\'ordine verrà chiuso.')) return
+
+    setStatus('sync', 'Aggiornamento cantina...')
     const n = await confermaOrdine(parseInt(btn.dataset.id), btn.dataset.c)
-    const { data } = await loadVini(); vini=data; render()
-    ordini = await loadOrdini(); renderOrdini()
-    toast(`✓ ${n} vini aggiornati!`)
+
+    // Ricarica TUTTO da Supabase per essere sicuri
+    const { data: nuoviVini } = await loadVini()
+    vini = nuoviVini
+    render()
+
+    ordini = await loadOrdini()
+    renderOrdini()
+
+    setStatus('online', 'Sincronizzato')
+
+    if (n > 0) {
+      toast(`✅ ${n} vini aggiornati! Le bottiglie sono state aggiunte alla cantina.`, 4000)
+    } else {
+      toast('⚠ Nessun vino aveva quantità in ordine')
+    }
   }))
   el.querySelectorAll('.ord-btn.del').forEach(btn => btn.addEventListener('click', async () => {
     if (!confirm('Eliminare questo ordine?')) return

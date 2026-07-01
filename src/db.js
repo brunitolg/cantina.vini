@@ -88,12 +88,24 @@ export async function eliminaOrdine(id) {
 }
 
 export async function confermaOrdine(ordineId, cantina) {
-  const { data: vini } = await supabase.from('vini').select('*').eq('cantina', cantina).gt('in_ordine', 0)
-  for (const v of (vini||[])) {
-    await supabase.from('vini').update({ quantita: v.quantita+v.in_ordine, updated_at: new Date().toISOString() }).eq('id', v.id)
+  // 1. Prendi tutti i vini in ordine per questa cantina
+  const { data: viniInOrdine } = await supabase
+    .from('vini').select('*')
+    .eq('cantina', cantina)
+    .gt('in_ordine', 0)
+
+  // 2. Per ogni vino: aggiungi bottiglie ordinate alla quantità e azzera in_ordine
+  for (const v of (viniInOrdine || [])) {
+    await supabase.from('vini').update({
+      quantita: (v.quantita || 0) + (v.in_ordine || 0),
+      in_ordine: 0,
+      updated_at: new Date().toISOString()
+    }).eq('id', v.id)
   }
+
+  // 3. Segna ordine come consegnato
   await supabase.from('ordini').update({ stato: 'consegnato' }).eq('id', ordineId)
-  return vini?.length || 0
+  return viniInOrdine?.length || 0
 }
 
 export function realtimeSub(cb) {
